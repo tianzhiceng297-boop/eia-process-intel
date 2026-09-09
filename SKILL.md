@@ -5,7 +5,7 @@ displayName: EIA Process Intelligence
 summary: 从环评报告提取企业真实产线的结构化事实，审查数字背后的监管博弈，推断工艺路线与设备选型，沉淀为可生长的三元组 ledger。Extract structured production-line facts from environmental impact assessment (EIA) reports, audit numbers for regulatory gaming, infer process routes and equipment selection, and accumulate a growing triple-store ledger.
 license: MIT
 description: 'Investigation workflow that turns Chinese EIA reports (环境影响评价报告/报告表/公示) into investment due-diligence intelligence: structured extraction (product scheme, per-step process flow, equipment list, material balance), adversarial field-credibility grading (EIA numbers are regulatory-gaming artifacts, not facts), physics-based cross-validation (low-risk fields as trust anchors to back-calculate capacity/yield/emissions), a per-industry process→equipment mapping knowledge base, and an append-only triple ledger with full provenance. 从环评报告提取企业真实产线的结构化事实，审查数字背后的企业与监管博弈，按字段博弈分级做交叉验证与反算（产能/良率/排放），以工序→设备映射库推断设备选型档次，并将结果沉淀为带来源、可生长的三元组 ledger。 Use when analyzing a company''s EIA filing, inferring real production lines and equipment selection, verifying capacity/yield claims, auditing EIA numbers for distortion, or building a process/equipment knowledge ledger. 触发场景：一级市场尽调、产能真实性核验、设备选型推断、物料平衡良率倒推、环评数字博弈审查、工艺路线判定 / Triggers: EIA report analysis, environmental impact assessment, capacity verification, equipment selection inference, material balance, yield back-calculation, regulatory gaming audit, process route identification.'
-version: 0.1.1
+version: 0.1.3
 agent_created: true
 ---
 
