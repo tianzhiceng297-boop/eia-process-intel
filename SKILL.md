@@ -5,7 +5,7 @@ displayName: EIA Process Intelligence
 summary: Turn Chinese EIA filings into production-line intelligence — extract facts, audit numbers for regulatory gaming, back-calculate capacity and yield, infer equipment selection, and accumulate a provenance-tracked triple ledger.
 license: MIT
 description: 'Investigation workflow that turns Chinese EIA filings (环评报告/环评公示) into investment due-diligence intelligence: structured extraction (product scheme, per-step process flow, equipment list, material balance), adversarial field-credibility grading, physics-based cross-validation (low-risk fields as trust anchors to back-calculate capacity/yield/emissions), process-to-equipment mapping inference, and an append-only triple ledger with provenance. Use when: (1) analyzing a company EIA filing or 受理公示, (2) verifying capacity claims / 产能真实性核验, (3) inferring equipment selection from a 设备清单, (4) back-calculating yield from 物料平衡 / material balance, (5) auditing EIA numbers for gaming patterns (批小建大), (6) building a process/equipment fact ledger across deals. Triggers: 环评, EIA report, material balance, equipment list, capacity verification, yield back-calculation, regulatory gaming audit.'
-version: 0.2.0
+version: 0.3.0
 metadata: {"clawdbot":{"emoji":"🏭"}}
 agent_created: true
 ---
@@ -79,6 +79,35 @@ Discovery output: gaming traces (批小建大、化整为零、hidden process st
 2. Which distortion direction favors the company, and how large must the distortion be before it is worth the risk?
 3. Which physical data (equipment / materials / energy / hazwaste) can bracket this number from both sides?
 
+### Credibility evolution (prior → evidence → posterior)
+
+The grading table is a prior, not a verdict. Every high-risk field evolves within a case:
+
+- **Prior** — game_risk from the table above, assigned at extraction.
+- **In-case evidence** — the `status` tag as cross-validation proceeds (申报值 / 已交叉验证 / 与外部冲突).
+- **Posterior** — mandatory end state in the report for every high-risk field, one of three: **maintained / upgraded / downgraded** vs prior, each with the deciding evidence in one line. Never leave a high-risk field at its prior without a stated check.
+
+Worked instance: power consumption, prior 中高 → mean-load check found it inconsistent with the line's heating/RF/UPW configuration → posterior **downgraded to "conflicting evidence"**, two competing explanations recorded (caliber distortion vs under-declared utilization), pending utility bills.
+
+**Prior-table feedback rule**: a single-case posterior never edits the grading table. The prior moves only when the same distortion direction is confirmed across ≥2 independent cases, or a hard counter-example appears — with the case list cited in `references/field-credibility.md`.
+
+## Anomaly loops (backtracking protocol)
+
+The phases above are the discipline skeleton, not the route — real investigations loop. Define an **anomaly** as anything that contradicts the current working hypothesis:
+
+1. cross-validation conflict (a trust anchor contradicts a declared number)
+2. mapping miss (a step or equipment class with no mapping row)
+3. caliber self-inconsistency (numbers within the filing do not cohere)
+4. unexpected process/equipment combination for the claimed product
+
+Protocol on hitting an anomaly:
+- state it in one sentence and list competing hypotheses (≥2 where possible);
+- name the backtrack target — which phase, which table to re-read;
+- **every loop ends in a written artifact**: the report conflict section, a gaming-trace entry, or `failed-queries.md`. Never resolve a loop in memory alone;
+- cap: if 3 loops do not converge, stop and record it as an open DD question in the report.
+
+Worked instance (nanoimprint acceptance report, 2026-09-10): bottle-scale special-gas usage (anomaly 4) triggered a material-balance re-check → solvent-vs-emission self-consistent, but the same loop surfaced the mean-load power inconsistency (anomaly 3) — one loop, two written artifacts.
+
 ## Workflow
 
 ### Phase 0 — Acquire the filing (if not provided)
@@ -145,6 +174,19 @@ Append triples per `references/ledger-schema.md`. Rules: append-only JSONL, one 
 ```
 
 Ledger skeleton: 8 entities (公司/项目/产品/工序/设备/设备类别/物料/污染物) × 8 relations (拥有/包含工序/使用设备/归类/投入/产出/排放/博弈痕迹), each fact tagged game_risk + status. Full definitions, attribute scopes, and the schema-growth mechanism: `references/ledger-schema.md`.
+
+## Cross-case aggregation (cases must query each other)
+
+The ledger becomes an intelligence system only when cases call each other. At the end of every engagement, after Phase 6, run three standard aggregations over the track's ledger file(s) — plain grep/join over JSONL, no new infrastructure:
+
+1. **Capacity-vs-equipment ratio** — all projects in the track: capacity ÷ key-equipment counts. What ratio range does a given configuration imply?
+2. **Per-process emission intensity** — same process across companies: emissions ÷ capacity, to flag outliers in either direction.
+3. **Same-equipment fingerprint** — a model/class appearing across projects, consolidating vendor and tier signals.
+
+**Two-layer write rule — never fuse them:**
+
+- **Fact layer**: aggregation output lands in `{project dir}/eia-ledger/cross-case-results.md` (dated; query type; cases involved; raw result). This is data, not knowledge.
+- **Judgment layer**: the mapping library updates **only** on a stable pattern (≥2 independent cases pointing the same way) or a clear counter-example — never directly from one aggregation run. The rationale column cites the case results that justify it.
 
 ## Mapping library maintenance (`references/mappings/`)
 

@@ -3,6 +3,22 @@
 All notable changes to this skill are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/), adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-09-10
+
+From a single-case evidence chain to a **recallable, evolvable, cross-case-reusable evidence-chain engine**: three research moves that were already happening implicitly are now explicit protocols. Methodology unchanged.
+
+### Added
+- **Credibility evolution protocol**: every high-risk field carries prior (grading table) → in-case evidence (status tag) → mandatory posterior (maintained / upgraded / downgraded, with deciding evidence). The prior table moves only on ≥2 independent case confirmations or a hard counter-example — single-case posteriors never edit it.
+- **Anomaly-loop protocol**: four anomaly classes (validation conflict / mapping miss / caliber self-inconsistency / unexpected process-equipment combination) trigger bounded backtracking — hypotheses named, backtrack target named, every loop ends in a written artifact, 3-loop cap before escalating to an open DD question.
+- **Cross-case aggregation**: three standard grep/join queries per engagement (capacity-vs-equipment ratio, per-process emission intensity, same-equipment fingerprint). Strict two-layer write rule — aggregation output lands in `cross-case-results.md` (fact layer); the mapping library updates only on stable patterns or clear counter-examples (judgment layer). Aggregation results are data, not knowledge.
+
+### Changed
+- Acceptance/verification monitoring reports (竣工验收监测报告) added to the external-source list — actual emissions, monitored load, actual-vs-budgeted investment; higher cross-validation value than the EIA filing itself.
+- Mean-load power check added to capacity back-calculation (declared kWh ÷ declared hours vs the line's minimum configured load).
+
+### Verified
+- Field-calibrated end-to-end against a real acceptance report (nanoimprint track, 2026-09-10): ledger schema unchanged; grading table, mapping seed and recipes exercised; posterior, anomaly loop and aggregation protocols distilled from that run.
+
 ## [0.2.0] - 2026-09-10
 
 ### Changed
