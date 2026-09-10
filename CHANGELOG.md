@@ -3,6 +3,13 @@
 All notable changes to this skill are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/), adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-09-10
+
+### Changed
+- SKILL.md rebuilt as an English-primary playbook following high-download skill patterns (analysis of the top-25 by downloads on ClawHub): trigger-style frontmatter description with numbered use-when scenarios, "When to Use" situation/action table up top, field-credibility grading table + threshold-hugging signatures + interest-review questions + cross-validation recipes pulled forward from references into the main body. Methodology unchanged — form only.
+- Frontmatter slimmed to single-language (English) description; Chinese trigger keywords kept inline for matchability. Added clawdbot metadata (emoji).
+- Removed the `en/` mirror — the root SKILL.md is now the English document; Chinese deep-dive references kept as-is.
+
 ## [0.1.3] - 2026-09-09
 
 ### Changed

@@ -31,10 +31,9 @@ Extract structured production-line facts from Chinese environmental impact asses
 
 ```
 eia-process-intel/
-├── SKILL.md                  # 主工作流（中文，运行时入口）
-├── en/SKILL.md               # 英文版主工作流
+├── SKILL.md                  # Full playbook (English, runtime entry) — trigger table, grading table, 7 questions, Phase 0–6, recipes
 ├── references/
-│   ├── field-credibility.md  # 字段博弈分级表 + 压线特征 + 利益审查三问
+│   ├── field-credibility.md  # 字段博弈分级表 + 压线特征 + 利益审查三问（含分级更新记录）
 │   ├── cross-validation.md   # 产能/良率/排放/产品结构反算配方 + 外部源清单
 │   ├── ledger-schema.md      # 本体最小集：8 实体 8 关系 + JSONL 格式 + 生长机制
 │   └── mappings/
@@ -42,7 +41,6 @@ eia-process-intel/
 ├── examples/
 │   ├── format-demo-ir-detector.md     # 虚构 IR 探测器案例格式演示（中文）
 │   └── format-demo-ir-detector-en.md  # 英文版
-├── en/references/            # 英文版 references（全套）
 ├── CHANGELOG.md
 └── README.md
 ```
@@ -69,7 +67,7 @@ In hard-tech private-market due diligence, the EIA filing is a rare document the
 
 ### Usage
 
-Ask your agent to "analyze this EIA report" or drop the PDF. The ledger lives in your DD project workspace at `{project dir}/eia-ledger/<track>.jsonl`. English documentation under `en/`.
+Ask your agent to "analyze this EIA report" or drop the PDF. The ledger lives in your DD project workspace at `{project dir}/eia-ledger/<track>.jsonl`. The main playbook (`SKILL.md`) is written in English with Chinese domain terms inline.
 
 ---
 

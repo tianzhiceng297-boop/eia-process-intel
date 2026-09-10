@@ -2,105 +2,160 @@
 name: eia-process-intel
 slug: eia-process-intel
 displayName: EIA Process Intelligence
-summary: 从环评报告提取企业真实产线的结构化事实，审查数字背后的监管博弈，推断工艺路线与设备选型，沉淀为可生长的三元组 ledger。Extract structured production-line facts from environmental impact assessment (EIA) reports, audit numbers for regulatory gaming, infer process routes and equipment selection, and accumulate a growing triple-store ledger.
+summary: Turn Chinese EIA filings into production-line intelligence — extract facts, audit numbers for regulatory gaming, back-calculate capacity and yield, infer equipment selection, and accumulate a provenance-tracked triple ledger.
 license: MIT
-description: 'Investigation workflow that turns Chinese EIA reports (环境影响评价报告/报告表/公示) into investment due-diligence intelligence: structured extraction (product scheme, per-step process flow, equipment list, material balance), adversarial field-credibility grading (EIA numbers are regulatory-gaming artifacts, not facts), physics-based cross-validation (low-risk fields as trust anchors to back-calculate capacity/yield/emissions), a per-industry process→equipment mapping knowledge base, and an append-only triple ledger with full provenance. 从环评报告提取企业真实产线的结构化事实，审查数字背后的企业与监管博弈，按字段博弈分级做交叉验证与反算（产能/良率/排放），以工序→设备映射库推断设备选型档次，并将结果沉淀为带来源、可生长的三元组 ledger。 Use when analyzing a company''s EIA filing, inferring real production lines and equipment selection, verifying capacity/yield claims, auditing EIA numbers for distortion, or building a process/equipment knowledge ledger. 触发场景：一级市场尽调、产能真实性核验、设备选型推断、物料平衡良率倒推、环评数字博弈审查、工艺路线判定 / Triggers: EIA report analysis, environmental impact assessment, capacity verification, equipment selection inference, material balance, yield back-calculation, regulatory gaming audit, process route identification.'
-version: 0.1.3
+description: 'Investigation workflow that turns Chinese EIA filings (环评报告/环评公示) into investment due-diligence intelligence: structured extraction (product scheme, per-step process flow, equipment list, material balance), adversarial field-credibility grading, physics-based cross-validation (low-risk fields as trust anchors to back-calculate capacity/yield/emissions), process-to-equipment mapping inference, and an append-only triple ledger with provenance. Use when: (1) analyzing a company EIA filing or 受理公示, (2) verifying capacity claims / 产能真实性核验, (3) inferring equipment selection from a 设备清单, (4) back-calculating yield from 物料平衡 / material balance, (5) auditing EIA numbers for gaming patterns (批小建大), (6) building a process/equipment fact ledger across deals. Triggers: 环评, EIA report, material balance, equipment list, capacity verification, yield back-calculation, regulatory gaming audit.'
+version: 0.2.0
+metadata: {"clawdbot":{"emoji":"🏭"}}
 agent_created: true
 ---
 
-# 环评工艺情报（EIA Process Intelligence）
+# EIA Process Intelligence (环评工艺情报)
 
-> **English** — This skill turns Chinese EIA filings (环境影响评价报告 / 报告表 / 公示) into investment due-diligence intelligence: structured extraction of product schemes, per-step process flows, equipment lists and material balances; adversarial field-credibility grading (EIA numbers are regulatory-gaming artifacts, not facts); physics-based cross-validation using low-risk fields as trust anchors; process→equipment mapping inference; and an append-only triple ledger with full provenance. Worked example: a fictionalized IR-detector case under `examples/`. **Full English documentation lives in [`en/SKILL.md`](en/SKILL.md)** (workflow, references, and a worked example mirrored).
+Turn Chinese EIA filings (环境影响评价报告 / 报告表 / 受理公示) into investment due-diligence intelligence. The EIA is a rare document the company itself wrote under legal liability and disclosed before construction: equipment lists, material balances and product schemes are mandatory disclosures. This skill reads it adversarially — extract, grade every number for regulatory gaming, cross-validate with low-risk trust anchors, infer process routes and equipment tiers, and book everything into a provenance-tracked triple ledger.
 
-定位：从环评报告提取企业真实产线的结构化事实，审查数字背后的监管博弈，推断工艺路线与设备选型，并将结果沉淀为可生长的三元组 ledger。
+Core move: EIAs almost never disclose per-step yields. Back-calculate end-to-end yield from the material balance (key inputs such as substrates vs chip outputs), then localize the bottleneck step. Worked demo: `examples/format-demo-ir-detector.md` (fictional case, all numbers marked illustrative).
 
-方法核心：环评通常不披露分环节良率，用物料平衡（关键投入如衬底 vs 芯片产出）反算端到端良率区间，并逐工序定位瓶颈——完整演示见 `examples/format-demo-ir-detector.md`（虚构案例）。
+## When to Use
 
-## 设计原则（优先级高于一切具体步骤）
+| Situation | Action |
+|-----------|--------|
+| Analyzing a company EIA filing (环评报告/报告表/公示) | Run the full Phase 0–6 workflow below |
+| Verify capacity claims (产能真实性核验) | Capacity back-calc recipes + external permit records |
+| Infer process route or equipment tier | Three-face route evidence + `references/mappings/<track>.md` |
+| Back-calculate yield from material balance (物料平衡) | Yield recipe + bottleneck localization |
+| Audit EIA numbers for distortion | Field grading table + threshold-hugging signatures |
+| Reconcile EIA caliber vs BP / interviews / prospectus | Caliber conflict table (report section 2) |
+| Build a reusable process/equipment fact base | Ledger schema, append-only JSONL |
 
-1. **查询先行**：所有提取与推断只为"必须回答的 7 个问题"服务。新增实体/关系/字段前，必须有至少一条真实失败查询作依据（见 references/ledger-schema.md）。
-2. **环评数字不是事实**：环评是企业在监管博弈下的申报口径。数字入 ledger 前必须过两道关——利益审查（影响审批分级/总量指标/监测频次/防护距离中的哪项、往哪个方向虚）与物理交叉验证（低风险字段反算高风险字段）。
-3. **口径纪律**：每条事实带 source（文件名+页码+原文摘录）与披露日期；【披露】与【推断】严格分离；反算输出永远是带口径的区间，不是点值。
-4. **一套词表**：工序→设备映射库即本体词汇层（设备类别别名归一），映射库与 ledger 共用同一份设备类别词表，一个资产不分两处。
+## Design principles (override any specific step)
 
-## 必须回答的 7 个问题
+1. **Query first.** Extraction and inference exist only to answer the Seven Questions. Adding an entity/relation/field to the ontology requires at least one real failed query as justification (see `references/ledger-schema.md`).
+2. **EIA numbers are not facts.** They are declared calibers negotiated under regulatory gaming. Before any number enters the ledger it must pass two gates: an interest review (which regulatory consequence does it affect, and which direction does distortion help?) and physical cross-validation (low-risk fields back-calculate high-risk fields).
+3. **Caliber discipline.** Every fact carries a source (file + page + verbatim quote) and disclosure date. 【Disclosed】and【Inferred】are strictly separated. Back-calculated outputs are always ranges with explicit caliber footnotes — never point values.
+4. **One vocabulary.** The process→equipment mapping library IS the ontology vocabulary layer (equipment-class aliases normalized). Mapping files and the ledger share a single equipment-class word list — one asset, not two.
 
-| # | 问题 | 主要依据 |
-|---|------|---------|
-| 1 | 实际产能与建设节奏（对照融资口径） | 产品方案、建设分期、批复信息 |
-| 2 | 工艺路线判定 | 工序序列 + 物料 + 污染物三面证据 |
-| 3 | 设备选型档次（国别/世代/密度） | 设备清单、型号、数量与产能配比 |
-| 4 | 良率与单耗倒推，定位瓶颈工序 | 物料平衡 |
-| 5 | 污染特征反推工艺存在性 | 危化品/危废/特气清单 |
-| 6 | 环评口径 vs 公司口径冲突证伪 | 全部字段 vs BP/访谈/公告 |
-| 7 | 数字可信度分级与反算 | references/field-credibility.md |
+## The Seven Questions (every EIA must answer)
 
-## 工作流
+| # | Question | Primary evidence |
+|---|----------|------------------|
+| 1 | Actual capacity vs financing-story capacity, and build-out pace | Product scheme, construction phases, approval info |
+| 2 | Which process route is actually in use | Process sequence + materials + pollutants (three faces) |
+| 3 | Equipment selection tier (origin / generation / density) | Equipment list, models, counts vs capacity ratio |
+| 4 | Yield and unit consumption; which step is the bottleneck | Material balance |
+| 5 | Do pollution fingerprints reveal undisclosed processes | Hazardous chemicals / hazardous waste / special gases |
+| 6 | Where EIA caliber contradicts company claims | All fields vs BP / interviews / announcements |
+| 7 | Credibility grading and back-calculation of each number | Field grading table below |
 
-### Phase 0 获取文件（用户未提供时）
+## Field credibility grading (v1 prior)
 
-按序检索（沉淀自实践，欢迎补行）：
-1. 全国建设项目环境影响评价信息公示平台；目标公司注册地/项目地的省、市、县三级生态环境局官网"环评受理/拟批准/审批决定"栏目
-2. 全国排污许可证管理信息平台（许可证正本 + 年度执行报告）
-3. 尚云环评云助手、环评爱好者论坛等存量文库（补历史版本）
+Principle: the more a number affects approval outcome, environmental spend, or regulatory burden, the more it is shaped by gaming between the company and the regulator. Update grades as cross-validation evidence accumulates; a falsified grade changes the table, with the case noted in `references/field-credibility.md`.
 
-检索式：公司全称、`项目名 环评报告表`、`项目名 环境影响报告书 受理` + 地市名。同一项目常有受理公示/拟批准公示/审批决定三个版本，受理版最全；报告表（短）与报告书（全）内容差异大，都拿。
+| Field | game_risk | Typical distortion direction | Cross-validation path |
+|-------|-----------|------------------------------|------------------------|
+| Design capacity 设计产能 | High | Both ways: inflate (grab emission quotas, reserve expansion headroom) or deflate (stay under high-level approval thresholds) | Equipment counts × industry cycle time; material inputs; annual hours; permit execution reports |
+| Product mix 产品结构 | High | Split SKUs, disguise mass production as pilot/R&D, hide restricted products | Hazardous-waste types, waste-liquid composition, byproducts reveal real products |
+| Pollutant generation/emission 污染物 | High | Understate → lower monitoring frequency and treatment specs | Treatment facility design capacity back-calc; industry per-unit factors; execution-report actuals |
+| Raw material usage 原辅材料 | Med-high | Understate toxic/hazardous chemicals → smaller buffer zone, lower regulatory class | Material-balance self-consistency; hazwaste ratio; warehouse size |
+| Operating hours 设备利用率 | Med-high | Understate annual run hours → lower emission estimates | Implied cycle time from equipment density; power/water consumption |
+| Process route 工艺路线 | Medium | Vague or blended wording to dodge specialized review | Pollutant fingerprints; equipment models |
+| Equipment count 设备数量 | Med-low | Understate advanced units, omit cross-period equipment | Ratio vs capacity; permit application cross-check |
+| Physical info 厂房/排放口/环保设施 | Low | Essentially trustworthy (site-verifiable, later documents cross-check) | **Use as trust anchors** to back-calculate everything above |
 
-### Phase 1 结构化提取
+### Threshold-hugging signatures (gaming traces)
 
-从 PDF 逐节提取为事实表（字段清单与博弈分级见 references/field-credibility.md）：
+- Design capacity sits right at an approval-tier boundary (报告书 ↔ 报告表 cutoff)
+- One project split into many small EIAs; multiple approvals on one site
+- EIA capacity clearly mismatched with permitted (排污许可) capacity — either direction
+- Mass-production SKUs declared as "R&D / pilot" (以研发中试名义量产)
+- Hazardous-chemical list missing common reagents the declared process requires
+- Annual operating hours inconsistent with industry-normal shift patterns
 
-- 项目概况与批复信息：批复文号、审批时间、审批层级、环评编制单位、建设性质（新建/扩建/技改）
-- 产品方案与产能：分产品、分规格、分建设期
-- 工艺流程：逐工序转写，含产污环节标注；流程图逐节点转文字，注明"自流程图转录"
-- 设备清单：名称/型号/数量/来源（自购/租赁/利旧）
-- 原辅材料与危化品：名称/年用量/危化特性
-- 物料平衡与水平衡：逐工序投入产出
-- 污染源与治理设施：产污环节→污染物→治理措施→排放去向
-- 建设期与投资额：分期节奏、总投资与环保投资
+Discovery output: gaming traces (批小建大、化整为零、hidden process steps、pilot-name mass production) go into a dedicated list AND are booked under the ledger relation 博弈痕迹 — they are also governance-DD evidence.
 
-每行事实带 source。扫描件先 OCR；表格数据优先从表格原文转录，避免转述失真。
+### Interest review: three questions per high-risk number
 
-### Phase 2 博弈审查
+1. Which regulatory consequence does this number hit — approval tier, total-emission quota, monitoring frequency, or buffer distance?
+2. Which distortion direction favors the company, and how large must the distortion be before it is worth the risk?
+3. Which physical data (equipment / materials / energy / hazwaste) can bracket this number from both sides?
 
-加载 references/field-credibility.md：给每个数字字段标 `game_risk`（高/中高/中/中低/低）与失真方向（虚增/虚减/拆分）。对高风险字段过利益审查三问：影响哪项监管后果？哪个方向有利？有无压线特征？
+## Workflow
 
-发现的博弈痕迹（批小建大、化整为零、隐匿工序、试产名义量产等）单独成清单，并按 ledger 关系 `博弈痕迹` 落账——它同时是治理尽调证据。
+### Phase 0 — Acquire the filing (if not provided)
 
-### Phase 3 交叉验证
+Search in order (field-tested; append as you learn):
+1. National EIA disclosure platform (全国建设项目环境影响评价信息公示平台); then provincial / municipal / county ecology-bureau sites, columns 环评受理 / 拟批准 / 审批决定
+2. National pollutant-permit platform (全国排污许可证管理信息平台) — permit original + annual execution reports
+3. Archives: 尚云环评云助手, 环评爱好者论坛 (for historical versions)
 
-加载 references/cross-validation.md：用低风险信任锚（设备数量、厂房/排放口等物理信息）反算高风险字段（产能/物料/排放）；外部材料按可得性使用：排污许可执行报告、危废转移联单、环保处罚记录、招股书在建工程、招投标与海关数据。
+Query patterns: company full name; `项目名 环评报告表`; `项目名 环境影响报告书 受理` + city name. The same project usually has three versions (受理公示 / 拟批准公示 / 审批决定) — the acceptance version is the fullest. 报告表 (short) and 报告书 (full) differ substantially; grab both.
 
-每个字段标 `status`：`申报值` / `已交叉验证` / `与外部冲突`。冲突不改数字，冲突本身写进报告。
+### Phase 1 — Structured extraction
 
-### Phase 4 推断
+Extract section by section into fact rows, each with source (file + page + verbatim quote) and disclosure date. OCR scanned PDFs first; transcribe tables from table text, never paraphrase.
 
-- **工艺路线**：工序序列、物料投入、污染物特征三面证据交叉定路线（例：T2SL vs VOx、单片式 vs 两片式封装、干法 vs 湿法），注明各证据面。
-- **设备选型**：加载 references/mappings/<赛道>.md，按"工序→设备类别→档次信号→国别/代表厂商"推断。映射库没有的工序标【映射缺失】记入 backlog，禁止临场编造。
-- **良率/单耗**：物料平衡反算端到端良率与瓶颈工序，输出区间 + 口径脚注（"环评口径自洽下的推算值"）。
-- **CAPEX 强度**：设备数量×市场价格区间（外部报价佐证）→ 单位产能投资强度，对照融资额与产能承诺。
+- Project overview & approval: approval number, date, approval level, EIA preparer, construction nature (新建/扩建/技改)
+- Product scheme & capacity: per product, per spec, per construction phase
+- Process flow: step by step with pollution-generation marks; transcribe flowchart nodes to text, noted "transcribed from flowchart"
+- Equipment list: name / model / count / source (purchased / leased / reused)
+- Raw materials & hazardous chemicals: name / annual usage / hazard class
+- Material & water balance: per-step inputs and outputs
+- Pollution sources & treatment: generation point → pollutant → treatment → discharge destination
+- Construction schedule & investment: phase pacing, total and environmental investment
 
-推断一律标【推断】，推理链写明：哪几条事实 → 什么规则 → 什么结论。
+### Phase 2 — Gaming review
 
-### Phase 5 产出报告
+Tag every numeric field with `game_risk` (高/中高/中/中低/低, defaults from the grading table) and a distortion direction (虚增/虚减/拆分). Run the three interest-review questions on every high-risk field. Sweep for the threshold-hugging signatures.
 
-固定五段结构（Markdown）：
-1. 结构化事实表（含 source / game_risk / status）
-2. 环评口径 vs 公司口径对照表
-3. 博弈痕迹清单
-4. 推断摘要（工艺路线 / 设备选型 / 良率区间 / CAPEX 强度）
-5. 访谈提问清单——环评里缺失、含糊、冲突的点逐条转为 DD 问题
+### Phase 3 — Cross-validation
 
-### Phase 6 ledger 落账
+Use low-risk trust anchors (equipment counts, floor area, outfall locations, treatment facility sizes — site-verifiable, later documents cross-check) to back-calculate high-risk fields. Then narrow with external sources, in order of availability:
 
-按 references/ledger-schema.md 追加三元组。要点：
-- 追加式 JSONL，一赛道一文件，存放在尽调项目工作区 `{项目目录}/eia-ledger/<赛道>.jsonl`；本 skill 目录不存业务数据
-- 每条必带 source / game_risk / status / 披露日期 / 落账日期
-- 本体答不了的问题记入同目录 `failed-queries.md`，等真实失败查询积累后再动 schema
+1. Pollutant-permit platform: permit original (capacity / limits / treatment) + annual execution reports (actual emissions / output)
+2. Hazardous-waste transfer manifests / hazwaste operating licenses (disposal volume back-calculates waste generation)
+3. Credit China / local environmental penalty records
+4. Prospectuses / annual reports: construction-in-progress, machinery original value, transfers-to-fixed-assets (vs equipment list)
+5. Procurement/bidding sites, customs data (imported equipment model clues)
 
-## 映射库维护（references/mappings/）
+Tag every field `status`: `申报值` (declared only) / `已交叉验证` (≥1 independent path, recorded) / `与外部冲突` (conflicting evidence exists — never overwrite the number, the conflict itself goes into the report).
 
-- 一赛道一文件，行结构：环评信号（工序/污染物/危化品关键词）→ 设备类别（词表）→ 档次信号 → 国别代表厂商 → 判读依据
-- 每次尽调结束补行；无据不写；不确定的标【待验证】并写明验证路径
-- 设备类别名称变更 = 词表变更，须同步 references/ledger-schema.md 的词表节
+### Phase 4 — Inference
+
+- **Process route**: cross the three faces — process sequence, material inputs, pollutant fingerprints (e.g. T2SL vs VOx; monolithic vs two-piece packaging; dry vs wet process). Cite which face supports what.
+- **Equipment tier**: load `references/mappings/<track>.md`, walk 工序→设备类别→档次信号→国别/代表厂商. A step missing from the mapping gets tagged 【映射缺失】and enters the backlog — never improvise a mapping on the spot.
+- **Yield / unit consumption**: material balance → end-to-end yield range + bottleneck step. Footnote mandatory: "estimated under EIA-caliber self-consistency; understated inputs shift the range — use external sources to tighten."
+- **CAPEX intensity**: equipment counts × market price bands (externally quoted) → investment per unit capacity, vs financing amount and capacity promises.
+
+Everything inferred is tagged 【推断】with the chain written out: which facts → which rule → which conclusion.
+
+### Phase 5 — Report (fixed five sections, Markdown)
+
+1. Structured fact table (with source / game_risk / status)
+2. EIA caliber vs company caliber comparison table
+3. Gaming-trace list
+4. Inference summary (process route / equipment tier / yield range / CAPEX intensity)
+5. Interview question list — every missing, vague, or conflicting EIA point becomes a DD question
+
+### Phase 6 — Book into the ledger
+
+Append triples per `references/ledger-schema.md`. Rules: append-only JSONL, one file per track, stored in the DD project workspace `{project dir}/eia-ledger/<track>.jsonl` — never in this skill directory. Every record carries source / game_risk / status / disclosure date / booking date. Queries the ontology cannot answer go to `failed-queries.md` in the same directory; the schema only moves when real failed queries justify it.
+
+```json
+{"s":"X-Detek (fictional)","p":"拥有","o":"T2SL detector line project (fictional)","q":{"建设性质":"新建"},"source":{"file":"x-detek-eia-20XX-acceptance.pdf (fictional)","page":12,"quote":"本项目新建…"},"game_risk":"低","status":"申报值","disc_date":"20XX-06","added":"2026-09-09"}
+```
+
+Ledger skeleton: 8 entities (公司/项目/产品/工序/设备/设备类别/物料/污染物) × 8 relations (拥有/包含工序/使用设备/归类/投入/产出/排放/博弈痕迹), each fact tagged game_risk + status. Full definitions, attribute scopes, and the schema-growth mechanism: `references/ledger-schema.md`.
+
+## Mapping library maintenance (`references/mappings/`)
+
+One file per track; row shape: EIA signal (process / pollutant / hazchem keywords) → equipment class (vocabulary) → tier signal → country / representative vendors → rationale. Append rows after every engagement; no evidence, no row; uncertain rows marked 【待验证】with the verification path. Renaming an equipment class is a vocabulary change — sync `references/ledger-schema.md` in the same commit.
+
+## File map
+
+| File | Contents |
+|------|----------|
+| `references/field-credibility.md` | Grading table rationale, v1 prior, update log |
+| `references/cross-validation.md` | Full recipes: capacity (cycle-time / material / energy), yield, emissions, product-mix fingerprints; status rules |
+| `references/ledger-schema.md` | Ontology minimal set (8×8), JSONL format, failed-query growth mechanism |
+| `references/mappings/semiconductor-equipment.md` | Seed mapping ~22 rows (semiconductor / IR detector / nanoimprint) |
+| `examples/format-demo-ir-detector.md` | Fictional worked example: yield 18–26% back-calculated from material balance |
